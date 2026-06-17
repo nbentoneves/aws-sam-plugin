@@ -1,93 +1,151 @@
 # wtr-aws-sam-debug
 
+A collection of shell scripts to simplify running and debugging AWS SAM Lambda functions locally using `sam local invoke` with remote JVM debug support.
 
+---
 
-## Getting started
+## Prerequisites
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) installed and available on `PATH`
+- [Docker](https://www.docker.com/get-started/) installed and running
+- A SAM-compatible project with a `template.yaml` and an event JSON file
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## Scripts
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+### `run-sam-debug.sh`
+
+Builds a SAM application and invokes a Lambda function locally with remote JVM debug enabled. Once running, you can attach an IntelliJ (or any JDWP-compatible) remote debugger to the specified port.
+
+#### Usage
+
+```zsh
+./run-sam-debug.sh <FunctionLogicalId> [event-file] [debug-port] [template-file]
+```
+
+#### Arguments
+
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `FunctionLogicalId` | ✅ Yes | — | The logical ID of the Lambda function as defined in your SAM template |
+| `event-file` | No | `events/event.json` | Path to the JSON event file used to invoke the function |
+| `debug-port` | No | `5005` | Local port to expose for remote JVM debug |
+| `template-file` | No | `template.yaml` | Path to the SAM template file |
+
+#### Environment Variables
+
+| Variable | Description |
+|---|---|
+| `SAM_BUILD_ARGS` | Extra arguments appended to the `sam build` command |
+| `SAM_INVOKE_ARGS` | Extra arguments appended to the `sam local invoke` command |
+
+#### Examples
+
+```zsh
+# Minimal — uses all defaults
+./run-sam-debug.sh Function
+
+# Custom event file
+./run-sam-debug.sh Function events/my-event.json
+
+# Custom event file and debug port
+./run-sam-debug.sh Function events/my-event.json 5006
+
+# All arguments explicit
+./run-sam-debug.sh Function events/my-event.json 5005 template.yaml
+
+# Pass extra SAM build args via environment variable
+SAM_BUILD_ARGS="--use-container" ./run-sam-debug.sh Function
+```
+
+#### What It Does
+
+1. Validates that `sam` and `docker` are available on `PATH`
+2. Validates that the template file and event file exist
+3. Runs `sam build -t <template-file>` (plus any `SAM_BUILD_ARGS`)
+4. Runs `sam local invoke` against the built template with debug mode enabled on the specified port
+5. Prints a reminder to attach your IntelliJ Remote JVM Debug configuration to `localhost:<debug-port>`
+
+#### Attaching the IntelliJ Debugger
+
+Once the script outputs `Attach IntelliJ Remote JVM Debug to localhost:<port>`, create or use a **Remote JVM Debug** run configuration in IntelliJ:
+
+- **Host:** `localhost`
+- **Port:** the debug port (default `5005`)
+- **Debugger mode:** Attach to remote JVM
+
+The Lambda container waits for the debugger to connect before executing, so attach promptly after the script starts.
+
+---
+
+### `link-run-sam-debug.sh`
+
+Creates a symlink of `run-sam-debug.sh` inside the `.aws-sam/` directory of a target repository. This allows each service repository to reference a single shared copy of `run-sam-debug.sh` without duplicating it.
+
+#### Usage
+
+```zsh
+./link-run-sam-debug.sh <absolute-path-to-run-sam-debug.sh> <absolute-path-to-repository-root>
+```
+
+> **Both paths must be absolute.**
+
+#### Arguments
+
+| Argument | Required | Description |
+|---|---|---|
+| `absolute-path-to-run-sam-debug.sh` | ✅ Yes | Absolute path to the `run-sam-debug.sh` script in this repository |
+| `absolute-path-to-repository-root` | ✅ Yes | Absolute path to the root of the service repository where the symlink should be created |
+
+#### Example
+
+```zsh
+./link-run-sam-debug.sh \
+  /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh \
+  /Users/me/dev/my-service
+```
+
+This creates:
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/JohnLewisPartnership/WTReCom/customer-support-and-comms/csc-tools/wtr-aws-sam-debug.git
-git branch -M main
-git push -uf origin main
+/Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh
 ```
 
-## Integrate with your tools
+#### What It Does
 
-* [Set up project integrations](https://gitlab.com/JohnLewisPartnership/WTReCom/customer-support-and-comms/csc-tools/wtr-aws-sam-debug/-/settings/integrations)
+1. Validates that both provided paths are absolute
+2. Validates that the source script file and target repository directory exist
+3. Creates the `.aws-sam/` directory inside the target repository if it does not already exist
+4. If a symlink already exists at the target location, removes it and recreates it pointing to the new source
+5. If a regular file (not a symlink) exists at the target location, exits with an error to avoid accidental overwrites
 
-## Collaborate with your team
+#### Typical Workflow
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+1. Clone this repository once to a stable location on your machine
+2. For each service repository you want to debug locally, run `link-run-sam-debug.sh` once
+3. From within the service repository, invoke `.aws-sam/run-sam-debug.sh` (or the symlink) as needed
 
-## Test and Deploy
+```zsh
+# Step 1 — clone this repo (one-time)
+git clone <this-repo-url> ~/dev/wtr-aws-sam-debug
 
-Use the built-in continuous integration in GitLab.
+# Step 2 — link into a service repo (once per service)
+~/dev/wtr-aws-sam-debug/link-run-sam-debug.sh \
+  ~/dev/wtr-aws-sam-debug/run-sam-debug.sh \
+  ~/dev/my-service
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+# Step 3 — run and debug from the service repo
+cd ~/dev/my-service
+.aws-sam/run-sam-debug.sh MyFunction
+```
 
-***
+---
 
-# Editing this README
+## Repository Structure
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```
+wtr-aws-sam-debug/
+├── run-sam-debug.sh          # Core script: builds and locally invokes a Lambda with debug enabled
+└── link-run-sam-debug.sh     # Helper script: symlinks run-sam-debug.sh into a target repository
+```
