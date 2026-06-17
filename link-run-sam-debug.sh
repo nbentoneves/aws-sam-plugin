@@ -1,16 +1,23 @@
 #!/bin/zsh
 set -euo pipefail
 
+# Resolve the directory where this script lives (the project root)
+SCRIPT_DIR="${0:A:h}"
+SOURCE_SCRIPT="$SCRIPT_DIR/run-sam-debug.sh"
+
 usage() {
   cat <<'EOF'
 Usage:
-  ./link-run-sam-debug.sh <absolute-path-to-run-sam-debug.sh> <absolute-path-to-repository-root>
+  ./link-run-sam-debug.sh
 
-Example:
-  ./link-run-sam-debug.sh /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh /Users/me/dev/my-service
+You will be prompted to enter:
+  1. Absolute path to the repository root where the symlink should be created
+
+The source script (run-sam-debug.sh) is automatically resolved from the
+directory where this script is located.
 
 Creates:
-  /Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh
+  <repository-root>/.aws-sam/run-sam-debug.sh -> <this-project>/run-sam-debug.sh
 EOF
 }
 
@@ -19,28 +26,18 @@ if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
   exit 0
 fi
 
-if [[ $# -ne 2 ]]; then
-  usage
+if [[ ! -f "$SOURCE_SCRIPT" ]]; then
+  echo "Error: run-sam-debug.sh not found in project root: $SOURCE_SCRIPT"
   exit 1
 fi
 
-SOURCE_SCRIPT="$1"
-REPO_ROOT="$2"
+read "REPO_ROOT?Enter the absolute path to the repository root: "
+
 TARGET_DIR="$REPO_ROOT/.aws-sam"
 TARGET_LINK="$TARGET_DIR/run-sam-debug.sh"
 
-if [[ "$SOURCE_SCRIPT" != /* ]]; then
-  echo "Error: source script path must be absolute: $SOURCE_SCRIPT"
-  exit 1
-fi
-
 if [[ "$REPO_ROOT" != /* ]]; then
   echo "Error: repository root path must be absolute: $REPO_ROOT"
-  exit 1
-fi
-
-if [[ ! -f "$SOURCE_SCRIPT" ]]; then
-  echo "Error: source script not found: $SOURCE_SCRIPT"
   exit 1
 fi
 

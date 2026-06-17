@@ -83,27 +83,32 @@ The Lambda container waits for the debugger to connect before executing, so atta
 
 Creates a symlink of `run-sam-debug.sh` inside the `.aws-sam/` directory of a target repository. This allows each service repository to reference a single shared copy of `run-sam-debug.sh` without duplicating it.
 
+The path to `run-sam-debug.sh` is **automatically resolved** from the directory where this script lives — no need to provide it manually.
+
 #### Usage
 
 ```zsh
-./link-run-sam-debug.sh <absolute-path-to-run-sam-debug.sh> <absolute-path-to-repository-root>
+./link-run-sam-debug.sh
 ```
 
-> **Both paths must be absolute.**
+When run, the script prompts for the one required path:
 
-#### Arguments
+```
+Enter the absolute path to the repository root: /Users/me/dev/my-service
+```
 
-| Argument | Required | Description |
-|---|---|---|
-| `absolute-path-to-run-sam-debug.sh` | ✅ Yes | Absolute path to the `run-sam-debug.sh` script in this repository |
-| `absolute-path-to-repository-root` | ✅ Yes | Absolute path to the root of the service repository where the symlink should be created |
+#### Prompts
+
+| Prompt | Description |
+|---|---|
+| `Enter the absolute path to the repository root` | Absolute path to the root of the service repository where the symlink should be created |
 
 #### Example
 
 ```zsh
-./link-run-sam-debug.sh \
-  /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh \
-  /Users/me/dev/my-service
+./link-run-sam-debug.sh
+Enter the absolute path to the repository root: /Users/me/dev/my-service
+Created symlink: /Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh
 ```
 
 This creates:
@@ -114,26 +119,26 @@ This creates:
 
 #### What It Does
 
-1. Validates that both provided paths are absolute
-2. Validates that the source script file and target repository directory exist
-3. Creates the `.aws-sam/` directory inside the target repository if it does not already exist
-4. If a symlink already exists at the target location, removes it and recreates it pointing to the new source
-5. If a regular file (not a symlink) exists at the target location, exits with an error to avoid accidental overwrites
+1. Automatically resolves the path to `run-sam-debug.sh` from the project root (the directory where this script is located)
+2. Validates that `run-sam-debug.sh` exists in the project root
+3. Prompts the user for the absolute path to the target repository root
+4. Validates that the provided path is absolute and the directory exists
+5. Creates the `.aws-sam/` directory inside the target repository if it does not already exist
+6. If a symlink already exists at the target location, removes it and recreates it pointing to the new source
+7. If a regular file (not a symlink) exists at the target location, exits with an error to avoid accidental overwrites
 
 #### Typical Workflow
 
 1. Clone this repository once to a stable location on your machine
-2. For each service repository you want to debug locally, run `link-run-sam-debug.sh` once
-3. From within the service repository, invoke `.aws-sam/run-sam-debug.sh` (or the symlink) as needed
+2. For each service repository you want to debug locally, run `link-run-sam-debug.sh` once and enter the repository path when prompted
+3. From within the service repository, invoke `.aws-sam/run-sam-debug.sh` as needed
 
 ```zsh
 # Step 1 — clone this repo (one-time)
 git clone <this-repo-url> ~/dev/wtr-aws-sam-debug
 
 # Step 2 — link into a service repo (once per service)
-~/dev/wtr-aws-sam-debug/link-run-sam-debug.sh \
-  ~/dev/wtr-aws-sam-debug/run-sam-debug.sh \
-  ~/dev/my-service
+~/dev/wtr-aws-sam-debug/link-run-sam-debug.sh
 
 # Step 3 — run and debug from the service repo
 cd ~/dev/my-service
