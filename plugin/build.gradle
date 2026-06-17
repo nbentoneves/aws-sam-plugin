@@ -1,0 +1,48 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '2.1.1'
+}
+
+group = 'com.github.sam'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+}
+
+gradlePlugin {
+    website = 'https://github.com/nbentoneves/aws-sam-plugin'
+    vcsUrl = 'https://github.com/nbentoneves/aws-sam-plugin.git'
+    plugins {
+        samDebugPlugin {
+            id = 'com.github.sam.debug'
+            implementationClass = 'com.github.sam.debug.SamDebugPlugin'
+            displayName = 'AWS Sam Plugin'
+            description = 'Gradle plugin and shell scripts to run and remotely debug AWS SAM locally using sam local invoke with JVM remote debug support.'
+            tags.set(['aws', 'aws-sam', 'debug', 'plugin'])
+        }
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'com.github.sam'
+            artifactId = 'sam-debug-plugin'
+            version = '1.0.0'
+            from components.java
+        }
+    }
+}

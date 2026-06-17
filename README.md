@@ -1,4 +1,6 @@
-# wtr-aws-sam-debug
+# aws-sam-debug
+
+aws-sam-debug
 
 A collection of shell scripts to simplify running and debugging AWS SAM Lambda functions locally using `sam local invoke` with remote JVM debug support.
 
@@ -26,19 +28,21 @@ Builds a SAM application and invokes a Lambda function locally with remote JVM d
 
 #### Arguments
 
-| Argument | Required | Default | Description |
-|---|---|---|---|
-| `FunctionLogicalId` | ✅ Yes | — | The logical ID of the Lambda function as defined in your SAM template |
-| `event-file` | No | `events/event.json` | Path to the JSON event file used to invoke the function |
-| `debug-port` | No | `5005` | Local port to expose for remote JVM debug |
-| `template-file` | No | `template.yaml` | Path to the SAM template file |
+
+| Argument            | Required | Default             | Description                                                           |
+| ------------------- | -------- | ------------------- | --------------------------------------------------------------------- |
+| `FunctionLogicalId` | ✅ Yes   | —                  | The logical ID of the Lambda function as defined in your SAM template |
+| `event-file`        | No       | `events/event.json` | Path to the JSON event file used to invoke the function               |
+| `debug-port`        | No       | `5005`              | Local port to expose for remote JVM debug                             |
+| `template-file`     | No       | `template.yaml`     | Path to the SAM template file                                         |
 
 #### Environment Variables
 
-| Variable | Description |
-|---|---|
-| `SAM_BUILD_ARGS` | Extra arguments appended to the `sam build` command |
-| `SAM_INVOKE_ARGS` | Extra arguments appended to the `sam local invoke` command |
+
+| Variable          | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `SAM_BUILD_ARGS`  | Extra arguments appended to the`sam build` command        |
+| `SAM_INVOKE_ARGS` | Extra arguments appended to the`sam local invoke` command |
 
 #### Examples
 
@@ -99,8 +103,9 @@ Enter the absolute path to the repository root: /Users/me/dev/my-service
 
 #### Prompts
 
-| Prompt | Description |
-|---|---|
+
+| Prompt                                           | Description                                                                             |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | `Enter the absolute path to the repository root` | Absolute path to the root of the service repository where the symlink should be created |
 
 #### Example
@@ -108,13 +113,13 @@ Enter the absolute path to the repository root: /Users/me/dev/my-service
 ```zsh
 ./link-run-sam-debug.sh
 Enter the absolute path to the repository root: /Users/me/dev/my-service
-Created symlink: /Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh
+Created symlink: /Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/aws-sam-debug/run-sam-debug.sh
 ```
 
 This creates:
 
 ```
-/Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/wtr-aws-sam-debug/run-sam-debug.sh
+/Users/me/dev/my-service/.aws-sam/run-sam-debug.sh -> /Users/me/dev/aws-sam-debug/run-sam-debug.sh
 ```
 
 #### What It Does
@@ -135,10 +140,10 @@ This creates:
 
 ```zsh
 # Step 1 — clone this repo (one-time)
-git clone <this-repo-url> ~/dev/wtr-aws-sam-debug
+git clone <this-repo-url> ~/dev/aws-sam-debug
 
 # Step 2 — link into a service repo (once per service)
-~/dev/wtr-aws-sam-debug/link-run-sam-debug.sh
+~/dev/aws-sam-debug/link-run-sam-debug.sh
 
 # Step 3 — run and debug from the service repo
 cd ~/dev/my-service
@@ -150,7 +155,7 @@ cd ~/dev/my-service
 ## Repository Structure
 
 ```
-wtr-aws-sam-debug/
+aws-sam-debug/
 ├── run-sam-debug.sh          # Core script: builds and locally invokes a Lambda with debug enabled
 └── link-run-sam-debug.sh     # Helper script: symlinks run-sam-debug.sh into a target repository
 ```
